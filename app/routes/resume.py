@@ -1,0 +1,110 @@
+import io
+import logging
+
+from fastapi import APIRouter, File, HTTPException, UploadFile, status
+
+from app.database.models import User
+from app.dependencies.auth_dependency import CurrentUserDep
+from app.dependencies.db_dependency import AppSessionDep
+from app.models.schemas import AnalysisOut, AnalysisRequest, ResumeListItem, ResumeUploadResponse
+from app.services.resume_service import ResumeService
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/resumes", tags=["Resumes"])
+
+
+def _extract_text_from_upload(file: UploadFile) -> str:
+    content = file.file.read()
+    filename = file.filename or ""
+
+    if filename.lower().endswith(".pdf"):
+        try:
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                return "\n".join(page.extract_text() or "" for page in pdf.pages)
+        except Exception as e:
+            logger.warning(f"pdfplumber failed: {e}, trying pypdf")
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(io.BytesIO(content))
+                return "\n".join(p.extract_text() or "" for p in reader.pages)
+            except Exception as e2:
+                raise HTTPException(status_code=400, detail=f"Could not extract text from PDF: {e2}")
+
+    try:
+        return content.decode("utf-8")
+    except Exception:
+        try:
+            return content.decode("latin-1")
+        except Exception:
+            raise HTTPException(
+                status_code=400,
+                detail="Unsupported file encoding. Please upload a PDF or plain text file.",
+            )
+
+
+@router.post("/upload", response_model=ResumeUploadResponse, status_code=status.HTTP_201_CREATED)
+async def upload_resume(
+    app_session: AppSessionDep,
+    current_user: CurrentUserDep,
+    file: UploadFile = File(...),
+):
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided.")
+
+    allowed_types = {"application/pdf", "text/plain"}
+    if file.content_type not in allowed_types and not file.filename.endswith((".pdf", ".txt")):
+        raise HTTPException(status_code=400, detail="Only PDF and plain text files are supported.")
+
+    raw_text = _extract_text_from_upload(file)
+    if not raw_text.strip():
+        raise HTTPException(status_code=400, detail="Could not extract any text from the file.")
+
+    return ResumeService(app_session).create_and_parse(current_user.id, file.filename, raw_text)
+
+
+@router.get("/", response_model=list[ResumeListItem])
+def list_resumes(app_session: AppSessionDep, current_user: CurrentUserDep):
+    return ResumeService(app_session).get_user_resumes(current_user.id)
+
+
+@router.get("/{resume_id}", response_model=ResumeUploadResponse)
+def get_resume(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+    resume = ResumeService(app_session).get_by_id(resume_id, current_user.id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+    return resume
+
+
+@router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_resume(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+    resume = ResumeService(app_session).delete(resume_id, current_user.id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+
+
+@router.post("/analyse", response_model=AnalysisOut, status_code=status.HTTP_201_CREATED)
+def run_analysis(
+    request: AnalysisRequest,
+    app_session: AppSessionDep,
+    current_user: CurrentUserDep,
+):
+    service = ResumeService(app_session)
+    resume = service.get_by_id(request.resume_id, current_user.id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+    return service.analyse(
+        resume,
+        job_description=request.job_description,
+        analysis_type=request.analysis_type,
+    )
+
+
+@router.get("/{resume_id}/analyses", response_model=list[AnalysisOut])
+def list_analyses(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+    service = ResumeService(app_session)
+    resume = service.get_by_id(resume_id, current_user.id)
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found.")
+    return service.get_analyses(resume_id)
