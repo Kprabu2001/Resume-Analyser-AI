@@ -52,7 +52,8 @@ def get_current_user(
             detail="Invalid token type",
         )
 
-    user = app_session.query(User).filter(User.id == payload.get("user_id")).first()
+    user_id: str = payload.get("user_id")
+    user = app_session.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

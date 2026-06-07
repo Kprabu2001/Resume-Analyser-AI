@@ -21,18 +21,18 @@ class AppSession:
 
     def __init__(self, sa_session: Session) -> None:
         self.session: Session = sa_session
-        self._user_id: Optional[int] = None
+        self._user_id: Optional[str] = None
 
     # ── identity ─────────────────────────────────────────────────────────────
 
-    def set_user(self, user_id: int) -> None:
+    def set_user(self, user_id: str) -> None:
         """Bind a user to this session. Can only be set once per request."""
         if self._user_id is None:
             self._user_id = user_id
         else:
             raise ValueError("User ID is already set and cannot be changed.")
 
-    def get_user(self) -> Optional[int]:
+    def get_user(self) -> Optional[str]:
         return self._user_id
 
     # ── lifecycle hooks (override in subclasses) ──────────────────────────────

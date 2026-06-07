@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional, List, Any
 from datetime import datetime
+from enum import Enum
 
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
@@ -18,27 +19,26 @@ class UserLogin(BaseModel):
 
 class UserTokenResponse(BaseModel):
     access_token: str
-    refresh_token:Optional[str]=None
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
-    user_id: int
+    user_id: str
     email: str
 
 
 class UserOut(BaseModel):
-    id: int
+    id: str
     email: str
     full_name: Optional[str]
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─── Resume ──────────────────────────────────────────────────────────────────
 
 class ResumeUploadResponse(BaseModel):
-    id: int
+    id: str
     filename: str
     candidate_name: Optional[str]
     email: Optional[str]
@@ -54,33 +54,31 @@ class ResumeUploadResponse(BaseModel):
     languages: Optional[List[str]]
     uploaded_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ResumeListItem(BaseModel):
-    id: int
+    id: str
     filename: str
     candidate_name: Optional[str]
     current_role: Optional[str]
     years_of_experience: Optional[float]
     uploaded_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─── Analysis ────────────────────────────────────────────────────────────────
 
 class AnalysisRequest(BaseModel):
-    resume_id: int
+    resume_id: str
     job_description: Optional[str] = None
-    analysis_type: str = "general"   # "general" | "job_match" | "improvement"
+    analysis_type: str = "general"
 
 
 class AnalysisOut(BaseModel):
-    id: int
-    resume_id: int
+    id: str
+    resume_id: str
     analysis_type: str
     job_description: Optional[str]
     overall_score: Optional[float]
@@ -97,8 +95,7 @@ class AnalysisOut(BaseModel):
     summary: Optional[str]
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ─── Chat ────────────────────────────────────────────────────────────────────
@@ -106,7 +103,7 @@ class AnalysisOut(BaseModel):
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
-    resume_id: Optional[int] = None
+    resume_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
@@ -123,34 +120,29 @@ class HealthResponse(BaseModel):
     version: str
 
 
+# ─── User Session ───────────────────────────────────────────────────────────
 
-#─── user session ─────────────────────────────────────────────────────────────────
-from pydantic import BaseModel, ConfigDict
-from datetime import datetime
-from typing import Optional
-from enum import Enum
-
-class USER_SESSION_STATUS (str, Enum):
+class USER_SESSION_STATUS(str, Enum):
     active = "active"
-    revoked ="revoked"
-    expired ="expired"
-    
+    revoked = "revoked"
+    expired = "expired"
+
 
 class UserSessionCreate(BaseModel):
-    user_id: int
+    user_id: str
     refresh_token: str
     expires_at: datetime
-    status: USER_SESSION_STATUS= USER_SESSION_STATUS.active
+    status: USER_SESSION_STATUS = USER_SESSION_STATUS.active
     revoked_at: Optional[datetime] = None
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
 
 
 class UserSessionSchema(BaseModel):
-    id: int
-    user_id: int
+    id: str
+    user_id: str
     expires_at: datetime
-    status:  USER_SESSION_STATUS  # active | revoked | expired
+    status: USER_SESSION_STATUS
     revoked_at: Optional[datetime] = None
     user_agent: Optional[str] = None
     ip_address: Optional[str] = None
@@ -158,12 +150,11 @@ class UserSessionSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-
 class UserSessionResponse(BaseModel):
-    id: Optional[str]=None
-    user_id: Optional[str]=None
-    expires_at: Optional[datetime]=None
-    status:  Optional[USER_SESSION_STATUS]=None  # active | revoked | expired
-    revoked_at: Optional[datetime] =None
-    user_agent: Optional[str] =None
-    ip_address: Optional[str] =None
+    id: Optional[str] = None
+    user_id: Optional[str] = None
+    expires_at: Optional[datetime] = None
+    status: Optional[USER_SESSION_STATUS] = None
+    revoked_at: Optional[datetime] = None
+    user_agent: Optional[str] = None
+    ip_address: Optional[str] = None

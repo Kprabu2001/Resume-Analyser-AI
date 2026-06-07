@@ -29,15 +29,21 @@ def show_main_page():
 # Upload Page
 # ──────────────────────────────────────────────────────────────────────────────
 
+MAX_UPLOAD_MB = 5
+
 def _render_upload_page():
     st.markdown("## Upload Your Resume")
-    st.markdown("Upload a PDF or plain text resume. AI will parse and extract all key information.")
+    st.markdown(f"Upload a PDF or plain text resume (max {MAX_UPLOAD_MB}MB). AI will parse and extract all key information.")
 
     uploaded_file = st.file_uploader(
         "Choose a resume file",
         type=["pdf", "txt"],
-        help="Supported: PDF, TXT",
+        help=f"Supported: PDF, TXT — Max file size: {MAX_UPLOAD_MB}MB",
     )
+
+    if uploaded_file and uploaded_file.size > MAX_UPLOAD_MB * 1024 * 1024:
+        st.error(f"File too large. Maximum size is {MAX_UPLOAD_MB}MB.")
+        return
 
     if uploaded_file:
         col1, col2 = st.columns([2, 1])

@@ -9,7 +9,7 @@ class UserSessionRepository(BaseRepository):
 
     def create_session(
         self,
-        user_id: int,
+        user_id: str,
         refresh_token: str,
         expires_at,
         user_agent: str = None,
@@ -28,17 +28,17 @@ class UserSessionRepository(BaseRepository):
     def get_by_refresh_token(self, refresh_token: str) -> Optional[UserSession]:
         return self.get_one(UserSession, refresh_token=refresh_token)
 
-    def get_by_id(self, session_id: int) -> Optional[UserSession]:
+    def get_by_id(self, session_id: str) -> Optional[UserSession]:
         return self.get_one(UserSession, id=session_id)
 
-    def revoke(self, session_id: int) -> Optional[UserSession]:
+    def revoke(self, session_id: str) -> Optional[UserSession]:
         session = self.get_one(UserSession, id=session_id)
         if session and session.status != "revoked":
             session.status = "revoked"
             session.revoked_at = datetime.now(timezone.utc)
         return session
 
-    def mark_expired(self, session_id: int) -> Optional[UserSession]:
+    def mark_expired(self, session_id: str) -> Optional[UserSession]:
         session = self.get_one(UserSession, id=session_id)
         if session and session.status != "expired":
             session.status = "expired"

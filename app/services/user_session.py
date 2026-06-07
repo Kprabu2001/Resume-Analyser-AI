@@ -18,7 +18,7 @@ class UserSessionService(BaseService):
 
     def create_session(
         self,
-        user_id: int,
+        user_id: str,
         refresh_token: str,
         expires_at: datetime,
         user_agent: str = None,
@@ -37,8 +37,8 @@ class UserSessionService(BaseService):
             TokenService.hash_token(refresh_token),
         )
 
-    def revoke(self, session_id: int) -> None:
+    def revoke(self, session_id: str) -> None:
         self.repository.revoke(session_id)
 
-    def mark_expired(self, session_id: int) -> None:
+    def mark_expired(self, session_id: str) -> None:
         self.repository.mark_expired(session_id)

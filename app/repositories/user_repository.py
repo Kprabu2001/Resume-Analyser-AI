@@ -26,5 +26,5 @@ class UserRepository(BaseRepository):
     def get_by_email(self, email: str):
         return self.get_one(User, email=email)
 
-    def get_by_id(self, user_id: int):
+    def get_by_id(self, user_id: str):
         return self.get_one(User, id=user_id)

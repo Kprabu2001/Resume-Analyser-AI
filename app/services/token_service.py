@@ -25,7 +25,7 @@ class TokenService:
 
     @staticmethod
     def create_token(
-        user_id: int,
+        user_id: str,
         email: str,
         token_type: str = "access",
         expiration_minutes: int | None = None,
@@ -44,7 +44,7 @@ class TokenService:
         payload = {
             "exp": expiration,
             "iat": issued_at,
-            "sub": str(user_id),
+            "sub": user_id,
             "user_id": user_id,
             "email": email,
             "token_type": token_type,

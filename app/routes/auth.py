@@ -31,7 +31,7 @@ def logout(request: Request, response: Response,app_session:AppSessionDep):
     return ApiResponse (message = "Logged out successfully")
 
 
-@router.post("/refresh", status_code=status.HTTP_200_OK, response_model=ApiResponse[UserTokenResponse])
+@router.post("/refresh", status_code=status.HTTP_200_OK, response_model=ApiResponse[UserTokenResponse],response_model_exclude=None)
 def refresh_token(request: Request, response: Response,app_session:AppSessionDep):
     refresh_tok = request.cookies.get(REFRESH_COOKIE)
     if not refresh_tok:

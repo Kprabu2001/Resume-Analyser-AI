@@ -79,7 +79,7 @@ class ResumeService(BaseService):
     def _get_repository(self) -> BaseRepository:
         return ResumeRepository(self.session)
 
-    def create_and_parse(self, user_id: int, filename: str, raw_text: str):
+    def create_and_parse(self, user_id: str, filename: str, raw_text: str):
         # Step 1 — persist the raw resume
         with self.get_db_session():
             resume = self.repository.create_resume(
@@ -98,13 +98,13 @@ class ResumeService(BaseService):
 
         return resume
 
-    def get_user_resumes(self, user_id: int):
+    def get_user_resumes(self, user_id: str):
         return self.repository.get_user_resumes(user_id)
 
-    def get_by_id(self, resume_id: int, user_id: int):
+    def get_by_id(self, resume_id: str, user_id: str):
         return self.repository.get_resume_by_id(resume_id, user_id)
 
-    def delete(self, resume_id: int, user_id: int):
+    def delete(self, resume_id: str, user_id: str):
         resume = self.repository.get_resume_by_id(resume_id, user_id)
         if not resume:
             return None
@@ -166,5 +166,5 @@ Languages: {', '.join(resume.languages or [])}
 
         return analysis
 
-    def get_analyses(self, resume_id: int):
+    def get_analyses(self, resume_id: str):
         return self.repository.get_analyses_for_resume(resume_id)

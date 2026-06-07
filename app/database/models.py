@@ -1,15 +1,17 @@
-from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey, Boolean, DateTime, JSON
+from sqlalchemy import Column, String, Float, Text, ForeignKey, Boolean, DateTime, JSON
 from sqlalchemy.orm import relationship, foreign
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 import uuid
 
 from app.base.base import Base, AppBase
+from app.base.id_gen import generate_id
 
 
 class User(AppBase):
     __tablename__ = "users"
+    __pk_prefix__ = "USR"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String, primary_key=True, default=lambda: generate_id("USR"))
     email = Column(String, nullable=False, unique=True, index=True)
     hashed_password = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
@@ -21,21 +23,23 @@ class User(AppBase):
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
 
+
 class UserSession(AppBase):
     __tablename__ = "user_sessions"
- 
-    id = Column(Integer, primary_key=True,  autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    __pk_prefix__ = "USES"
+
+    id = Column(String, primary_key=True, default=lambda: generate_id("USES"))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     refresh_token = Column(String, nullable=False, index=True)
-    status = Column(String, default="active", nullable=False)  # active | revoked | expired
+    status = Column(String, default="active", nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     revoked_at = Column(DateTime(timezone=True), nullable=True, default=None)
     user_agent = Column(String, nullable=False)
     ip_address = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.now(timezone.utc))
- 
-    # user = relationship("User", back_populates="user_sessions")
+
     user = relationship("User")
+
     @property
     def is_expired(self) -> bool:
         if not self.expires_at:
@@ -47,24 +51,22 @@ class UserSession(AppBase):
             else self.expires_at
         )
         return now >= exp
- 
+
     @property
     def is_revoked(self) -> bool:
         return self.status == "revoked" or self.revoked_at is not None
- 
+
     @property
     def is_active(self) -> bool:
         return self.status == "active" and not self.is_expired and not self.is_revoked
- 
-
- 
 
 
 class ChatSession(AppBase):
     __tablename__ = "chat_sessions"
+    __pk_prefix__ = "CHS"
 
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(String, primary_key=True, default=lambda: generate_id("CHS"))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="chat_sessions")
@@ -75,43 +77,41 @@ class ChatSession(AppBase):
 
 class Resume(AppBase):
     __tablename__ = "resumes"
+    __pk_prefix__ = "RES"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id = Column(String, primary_key=True, default=lambda: generate_id("RES"))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
     filename = Column(String, nullable=False)
     raw_text = Column(Text, nullable=False)
     uploaded_at = Column(DateTime, default=datetime.now(timezone.utc))
 
-    # Parsed fields
     candidate_name = Column(String, nullable=True)
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     location = Column(String, nullable=True)
     years_of_experience = Column(Float, nullable=True)
-    education_level = Column(String, nullable=True)   # e.g. "Bachelor's", "Master's", "PhD"
+    education_level = Column(String, nullable=True)
     current_role = Column(String, nullable=True)
 
-    # JSON arrays stored as JSON
-    skills = Column(JSON, nullable=True)           # list of skill strings
-    work_experience = Column(JSON, nullable=True)  # list of {company, role, duration}
-    education = Column(JSON, nullable=True)        # list of {degree, institution, year}
-    certifications = Column(JSON, nullable=True)   # list of cert strings
-    languages = Column(JSON, nullable=True)        # list of language strings
+    skills = Column(JSON, nullable=True)
+    work_experience = Column(JSON, nullable=True)
+    education = Column(JSON, nullable=True)
+    certifications = Column(JSON, nullable=True)
+    languages = Column(JSON, nullable=True)
 
     analyses = relationship("ResumeAnalysis", back_populates="resume", cascade="all, delete-orphan")
-
     user = relationship("User", back_populates="resumes")
 
 
 class ResumeAnalysis(AppBase):
     __tablename__ = "resume_analyses"
+    __pk_prefix__ = "RAN"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
-    job_description = Column(Text, nullable=True)   # optional JD to match against
-    analysis_type = Column(String, nullable=False)   # "general" | "job_match" | "improvement"
+    id = Column(String, primary_key=True, default=lambda: generate_id("RAN"))
+    resume_id = Column(String, ForeignKey("resumes.id"), nullable=False)
+    job_description = Column(Text, nullable=True)
+    analysis_type = Column(String, nullable=False)
 
-    # Scores (0-100)
     overall_score = Column(Float, nullable=True)
     ats_score = Column(Float, nullable=True)
     skills_score = Column(Float, nullable=True)
@@ -119,13 +119,12 @@ class ResumeAnalysis(AppBase):
     education_score = Column(Float, nullable=True)
     formatting_score = Column(Float, nullable=True)
 
-    # Textual feedback
-    strengths = Column(JSON, nullable=True)          # list of strength strings
-    weaknesses = Column(JSON, nullable=True)         # list of weakness strings
-    suggestions = Column(JSON, nullable=True)        # list of improvement suggestions
-    missing_keywords = Column(JSON, nullable=True)   # list of missing keywords vs JD
-    matched_keywords = Column(JSON, nullable=True)   # list of matched keywords vs JD
-    summary = Column(Text, nullable=True)            # paragraph summary
+    strengths = Column(JSON, nullable=True)
+    weaknesses = Column(JSON, nullable=True)
+    suggestions = Column(JSON, nullable=True)
+    missing_keywords = Column(JSON, nullable=True)
+    matched_keywords = Column(JSON, nullable=True)
+    summary = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
@@ -134,13 +133,14 @@ class ResumeAnalysis(AppBase):
 
 class ChatMessage(AppBase):
     __tablename__ = "chat_messages"
+    __pk_prefix__ = "CHM"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String, primary_key=True, default=lambda: generate_id("CHM"))
     session_id = Column(String, nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    role = Column(String, nullable=False)   # "user" or "assistant"
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, index=True)
+    role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=True)  # context resume
+    resume_id = Column(String, ForeignKey("resumes.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="chat_messages")

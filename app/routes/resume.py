@@ -3,11 +3,13 @@ import logging
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
+from app.core.config import settings
 from app.database.models import User
 from app.dependencies.auth_dependency import CurrentUserDep
 from app.dependencies.db_dependency import AppSessionDep
 from app.models.schemas import AnalysisOut, AnalysisRequest, ResumeListItem, ResumeUploadResponse
 from app.services.resume_service import ResumeService
+from app.base.base import ApiResponse
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +18,12 @@ router = APIRouter(prefix="/resumes", tags=["Resumes"])
 
 def _extract_text_from_upload(file: UploadFile) -> str:
     content = file.file.read()
+    max_bytes = settings.max_upload_size_mb * 1024 * 1024
+    if len(content) > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB.",
+        )
     filename = file.filename or ""
 
     if filename.lower().endswith(".pdf"):
@@ -70,7 +78,7 @@ def list_resumes(app_session: AppSessionDep, current_user: CurrentUserDep):
 
 
 @router.get("/{resume_id}", response_model=ResumeUploadResponse)
-def get_resume(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+def get_resume(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
     resume = ResumeService(app_session).get_by_id(resume_id, current_user.id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
@@ -78,10 +86,11 @@ def get_resume(resume_id: int, app_session: AppSessionDep, current_user: Current
 
 
 @router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_resume(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+def delete_resume(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
     resume = ResumeService(app_session).delete(resume_id, current_user.id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
+    return ApiResponse(message="Resume deleted successfully.")
 
 
 @router.post("/analyse", response_model=AnalysisOut, status_code=status.HTTP_201_CREATED)
@@ -102,7 +111,7 @@ def run_analysis(
 
 
 @router.get("/{resume_id}/analyses", response_model=list[AnalysisOut])
-def list_analyses(resume_id: int, app_session: AppSessionDep, current_user: CurrentUserDep):
+def list_analyses(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
     service = ResumeService(app_session)
     resume = service.get_by_id(resume_id, current_user.id)
     if not resume:

@@ -147,7 +147,7 @@ def list_resumes(access_token: str) -> list:
         return []
 
 
-def get_resume(resume_id: int, access_token: str) -> Optional[dict]:
+def get_resume(resume_id: str, access_token: str) -> Optional[dict]:
     try:
         r = _make_request("GET", f"{BACKEND_URL}/resumes/{resume_id}", access_token, timeout=15)
         return r.json() if r.status_code == 200 else None
@@ -155,7 +155,7 @@ def get_resume(resume_id: int, access_token: str) -> Optional[dict]:
         return None
 
 
-def delete_resume(resume_id: int, access_token: str) -> bool:
+def delete_resume(resume_id: str, access_token: str) -> bool:
     try:
         r = _make_request("DELETE", f"{BACKEND_URL}/resumes/{resume_id}", access_token, timeout=10)
         return r.status_code == 204
@@ -164,7 +164,7 @@ def delete_resume(resume_id: int, access_token: str) -> bool:
 
 
 def run_analysis(
-    resume_id: int,
+    resume_id: str,
     access_token: str,
     job_description: Optional[str] = None,
     analysis_type: str = "general",
@@ -188,7 +188,7 @@ def run_analysis(
         return {"success": False, "error": str(exc)}
 
 
-def list_analyses(resume_id: int, access_token: str) -> list:
+def list_analyses(resume_id: str, access_token: str) -> list:
     try:
         r = _make_request(
             "GET", f"{BACKEND_URL}/resumes/{resume_id}/analyses", access_token, timeout=15
@@ -199,7 +199,7 @@ def list_analyses(resume_id: int, access_token: str) -> list:
 
 
 def send_chat_message(
-    session_id: str, message: str, access_token: str, resume_id: Optional[int] = None
+    session_id: str, message: str, access_token: str, resume_id: Optional[str] = None
 ) -> dict:
     try:
         payload = {"session_id": session_id, "message": message}

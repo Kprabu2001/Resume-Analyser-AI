@@ -19,7 +19,7 @@ class ResumeRepository(BaseRepository):
 
     # ── Resume ────────────────────────────────────────────────────────────────
 
-    def create_resume(self, user_id: int, filename: str, raw_text: str) -> Resume:
+    def create_resume(self, user_id: str, filename: str, raw_text: str) -> Resume:
         return self.create(
             Resume,
             user_id=user_id,
@@ -27,10 +27,10 @@ class ResumeRepository(BaseRepository):
             raw_text=raw_text,
         )
 
-    def get_resume_by_id(self, resume_id: int, user_id: int) -> Optional[Resume]:
+    def get_resume_by_id(self, resume_id: str, user_id: str) -> Optional[Resume]:
         return self.get_one(Resume, id=resume_id, user_id=user_id)
 
-    def get_user_resumes(self, user_id: int):
+    def get_user_resumes(self, user_id: str):
         return (
             self.db.query(Resume)
             .filter(Resume.user_id == user_id)
@@ -64,7 +64,7 @@ class ResumeRepository(BaseRepository):
 
     def create_analysis(
         self,
-        resume_id: int,
+        resume_id: str,
         job_description: Optional[str],
         analysis_type: str,
         data: dict,
@@ -88,7 +88,7 @@ class ResumeRepository(BaseRepository):
             summary=data.get("summary"),
         )
 
-    def get_analyses_for_resume(self, resume_id: int):
+    def get_analyses_for_resume(self, resume_id: str):
         return (
             self.db.query(ResumeAnalysis)
             .filter(ResumeAnalysis.resume_id == resume_id)
@@ -98,7 +98,7 @@ class ResumeRepository(BaseRepository):
 
     # ── ChatSession ──────────────────────────────────────────────────────────
 
-    def create_chat_session(self, user_id: int) -> ChatSession:
+    def create_chat_session(self, user_id: str) -> ChatSession:
         return self.create(ChatSession, user_id=user_id)
 
     # ── ChatMessage ───────────────────────────────────────────────────────────
@@ -106,10 +106,10 @@ class ResumeRepository(BaseRepository):
     def create_chat_message(
         self,
         session_id: str,
-        user_id: int,
+        user_id: str,
         role: str,
         content: str,
-        resume_id: Optional[int] = None,
+        resume_id: Optional[str] = None,
     ) -> ChatMessage:
         return self.create(
             ChatMessage,

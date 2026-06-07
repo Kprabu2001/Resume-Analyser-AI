@@ -1,8 +1,13 @@
 import logging
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s - %(message)s")
+
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.base.server import AppServer
 from app.core.config import settings
 from app.database.session import engine
 from app.database.models import Base
@@ -24,7 +29,7 @@ async def lifespan(app: FastAPI):
     engine.dispose()
 
 
-app = FastAPI(
+app = AppServer(
     title=settings.app_name,
     version=settings.app_version,
     description="Resume Analyser AI — Upload, parse, and analyse resumes with AI-powered feedback",

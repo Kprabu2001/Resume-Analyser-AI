@@ -81,7 +81,7 @@ class ChatService(BaseService):
     def _get_repository(self) -> BaseRepository:
         return ResumeRepository(self.session)
 
-    def create_session(self, user_id: int) -> ChatSession:
+    def create_session(self, user_id: str) -> ChatSession:
         return self.repository.create_chat_session(user_id)
 
     def get_history(self, session_id: str) -> list[dict]:
@@ -94,10 +94,10 @@ class ChatService(BaseService):
     def save_message(
         self,
         session_id: str,
-        user_id: int,
+        user_id: str,
         role: str,
         content: str,
-        resume_id: Optional[int] = None,
+        resume_id: Optional[str] = None,
     ) -> None:
         with self.get_db_session():
             self.repository.create_chat_message(
@@ -112,7 +112,7 @@ class ChatService(BaseService):
         self,
         session_id: str,
         user_message: str,
-        user_id: int,
+        user_id: str,
         resume: Optional[Resume] = None,
     ) -> dict:
         history = self.get_history(session_id)
