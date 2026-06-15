@@ -12,14 +12,6 @@ ModelType = TypeVar("ModelType")
 
 
 class BaseRepository:
-    """
-    All repositories inherit from this class.
-
-    Receives an AppSession (not a raw sqlalchemy Session).
-    All DB access goes through self.db which is the AppSession,
-    so operations benefit from the consistent error-handling,
-    rollback-on-error, and lifecycle management in AppSession.
-    """
 
     def __init__(self, db: AppSession) -> None:
         self.db = db
@@ -95,9 +87,6 @@ class BaseRepository:
     # ── filtering ─────────────────────────────────────────────────────────────
 
     def _apply_filters(self, query, model: Type[ModelType], filters: FilterNode):
-        """
-        Convert FilterNode tree to SQLAlchemy filter expressions.
-        """
         if isinstance(filters, Filter):
             column = getattr(model, filters.field)
             expr = filters.expression
@@ -155,8 +144,6 @@ class BaseRepository:
             column = getattr(model, field)
             query = query.order_by(desc(column) if order == "desc" else asc(column))
         return query
-
-    # ── utility ───────────────────────────────────────────────────────────────
 
     def _to_dict(self, obj: Any) -> dict:
         result = {}

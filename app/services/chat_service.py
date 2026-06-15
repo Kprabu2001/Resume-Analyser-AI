@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from typing import Optional
 
@@ -71,12 +70,6 @@ Languages: {', '.join(resume.languages or []) or 'N/A'}
 
 
 class ChatService(BaseService):
-    """
-    Handles conversational AI chat with resume context.
-
-    self.session     → AppSession
-    self.repository  → ResumeRepository (reads resume + chat history, writes messages)
-    """
 
     def _get_repository(self) -> BaseRepository:
         return ResumeRepository(self.session)
@@ -108,7 +101,7 @@ class ChatService(BaseService):
                 resume_id=resume_id,
             )
 
-    async def get_ai_response(
+    def get_ai_response(
         self,
         session_id: str,
         user_message: str,
@@ -125,9 +118,7 @@ class ChatService(BaseService):
         messages.extend(history)
         messages.append({"role": "user", "content": final_message})
 
-        # Run blocking Groq call in a thread — don't block the event loop
-        response = await asyncio.to_thread(
-            client.chat.completions.create,
+        response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             max_tokens=800,
             messages=messages,
@@ -136,7 +127,6 @@ class ChatService(BaseService):
         reply = response.choices[0].message.content
         resume_id = resume.id if resume else None
 
-        # Persist both turns in separate transactions
         self.save_message(session_id, user_id, "user", user_message, resume_id=resume_id)
         self.save_message(session_id, user_id, "assistant", reply, resume_id=resume_id)
 

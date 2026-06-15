@@ -1,6 +1,15 @@
 import logging
+import sys
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s - %(message)s")
+from app.base.log_formatter import RequestIdFormatter
+
+root_logger = logging.getLogger()
+root_logger.handlers.clear()
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(RequestIdFormatter("%(levelname)s %(name)s - %(message)s"))
+root_logger.addHandler(handler)
+root_logger.setLevel(logging.INFO)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 from contextlib import asynccontextmanager
 

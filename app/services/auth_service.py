@@ -27,12 +27,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 class AuthService(BaseService):
-    """
-    Handles signup, login, logout and token refresh.
-
-    self.session  → AppSession (owns the DB connection for this request)
-    self.repository → UserRepository (all User + UserSession DB calls)
-    """
 
     def __init__(self, session: AppSession) -> None:
         super().__init__(session)
@@ -40,8 +34,6 @@ class AuthService(BaseService):
 
     def _get_repository(self) -> BaseRepository:
         return UserRepository(self.session)
-
-    # ── signup ────────────────────────────────────────────────────────────────
 
     def signup(self, user_data: UserSignUp):
         existing = self.repository.get_by_email(user_data.email)
@@ -60,8 +52,6 @@ class AuthService(BaseService):
 
         logger.info(f"New user created: {new_user.email} (id={new_user.id})")
         return new_user
-
-    # ── login ─────────────────────────────────────────────────────────────────
 
     def login(
         self, user_data: UserLogin, request: Request, response: Response
@@ -85,7 +75,6 @@ class AuthService(BaseService):
             user.id, user.email, token_type="refresh"
         )
 
-        # Derive request metadata
         user_agent = request.headers.get("user-agent")
         x_forwarded_for = request.headers.get("x-forwarded-for")
         ip_address = (
@@ -115,8 +104,6 @@ class AuthService(BaseService):
             email=user.email,
         )
 
-    # ── logout ────────────────────────────────────────────────────────────────
-
     def logout(self, request: Request, response: Response) -> None:
         refresh_token = request.cookies.get(REFRESH_COOKIE)
 
@@ -129,8 +116,6 @@ class AuthService(BaseService):
 
         self._clear_refresh_cookie(response)
         self._clear_access_cookie(response)
-
-    # ── refresh ───────────────────────────────────────────────────────────────
 
     def refresh_access_token(self, request: Request, response: Response) -> UserTokenResponse:
         refresh_token = request.cookies.get(REFRESH_COOKIE)
@@ -192,8 +177,6 @@ class AuthService(BaseService):
             user_id=user.id,
             email=user.email,
         )
-
-    # ── cookie helpers (static) ───────────────────────────────────────────────
 
     @staticmethod
     def _set_access_cookie(response: Response, access_token: str, expiration: datetime) -> None:

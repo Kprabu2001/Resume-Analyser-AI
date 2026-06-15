@@ -4,15 +4,9 @@ from app.database.models import User
 
 
 class UserRepository(BaseRepository):
-    """
-    Handles all DB operations for User model.
-    Receives an AppSession through BaseRepository.__init__.
-    """
 
     def __init__(self, db: AppSession) -> None:
         super().__init__(db)
-
-    # ── User ──────────────────────────────────────────────────────────────────
 
     def create_user(self, email: str, hashed_password: str, full_name: str = None) -> User:
         return self.create(

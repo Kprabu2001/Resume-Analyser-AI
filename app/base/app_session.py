@@ -14,9 +14,6 @@ class AppSession:
       - user identity binding (set once per request, cannot be changed)
       - consistent add / flush / commit / rollback / close helpers
       - pre_commit / post_commit hooks for audit logs, events, etc.
-
-    This is the object that repositories and services receive instead of
-    a bare sqlalchemy.orm.Session.
     """
 
     def __init__(self, sa_session: Session) -> None:
@@ -26,7 +23,6 @@ class AppSession:
     # ── identity ─────────────────────────────────────────────────────────────
 
     def set_user(self, user_id: str) -> None:
-        """Bind a user to this session. Can only be set once per request."""
         if self._user_id is None:
             self._user_id = user_id
         else:
@@ -35,14 +31,12 @@ class AppSession:
     def get_user(self) -> Optional[str]:
         return self._user_id
 
-    # ── lifecycle hooks (override in subclasses) ──────────────────────────────
+    # ── lifecycle hooks ──────────────────────────────────────────────────────
 
     def pre_commit(self) -> None:
-        """Called automatically before every commit. Override to add audit logic."""
         pass
 
     def post_commit(self) -> None:
-        """Called automatically after every successful commit."""
         pass
 
     # ── session operations ────────────────────────────────────────────────────

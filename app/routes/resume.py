@@ -4,8 +4,7 @@ import logging
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
 from app.core.config import settings
-from app.database.models import User
-from app.dependencies.auth_dependency import CurrentUserDep
+from app.dependencies.auth_dependency import CurrentUserIdDep
 from app.dependencies.db_dependency import AppSessionDep
 from app.models.schemas import AnalysisOut, AnalysisRequest, ResumeListItem, ResumeUploadResponse
 from app.services.resume_service import ResumeService
@@ -53,9 +52,9 @@ def _extract_text_from_upload(file: UploadFile) -> str:
 
 
 @router.post("/upload", response_model=ResumeUploadResponse, status_code=status.HTTP_201_CREATED)
-async def upload_resume(
+def upload_resume(
     app_session: AppSessionDep,
-    current_user: CurrentUserDep,
+    user_id: CurrentUserIdDep,
     file: UploadFile = File(...),
 ):
     if not file.filename:
@@ -69,25 +68,25 @@ async def upload_resume(
     if not raw_text.strip():
         raise HTTPException(status_code=400, detail="Could not extract any text from the file.")
 
-    return ResumeService(app_session).create_and_parse(current_user.id, file.filename, raw_text)
+    return ResumeService(app_session).create_and_parse(user_id, file.filename, raw_text)
 
 
 @router.get("/", response_model=list[ResumeListItem])
-def list_resumes(app_session: AppSessionDep, current_user: CurrentUserDep):
-    return ResumeService(app_session).get_user_resumes(current_user.id)
+def list_resumes(app_session: AppSessionDep, user_id: CurrentUserIdDep):
+    return ResumeService(app_session).get_user_resumes(user_id)
 
 
 @router.get("/{resume_id}", response_model=ResumeUploadResponse)
-def get_resume(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
-    resume = ResumeService(app_session).get_by_id(resume_id, current_user.id)
+def get_resume(resume_id: str, app_session: AppSessionDep, user_id: CurrentUserIdDep):
+    resume = ResumeService(app_session).get_by_id(resume_id, user_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return resume
 
 
 @router.delete("/{resume_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_resume(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
-    resume = ResumeService(app_session).delete(resume_id, current_user.id)
+def delete_resume(resume_id: str, app_session: AppSessionDep, user_id: CurrentUserIdDep):
+    resume = ResumeService(app_session).delete(resume_id, user_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return ApiResponse(message="Resume deleted successfully.")
@@ -97,10 +96,10 @@ def delete_resume(resume_id: str, app_session: AppSessionDep, current_user: Curr
 def run_analysis(
     request: AnalysisRequest,
     app_session: AppSessionDep,
-    current_user: CurrentUserDep,
+    user_id: CurrentUserIdDep,
 ):
     service = ResumeService(app_session)
-    resume = service.get_by_id(request.resume_id, current_user.id)
+    resume = service.get_by_id(request.resume_id, user_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return service.analyse(
@@ -111,9 +110,9 @@ def run_analysis(
 
 
 @router.get("/{resume_id}/analyses", response_model=list[AnalysisOut])
-def list_analyses(resume_id: str, app_session: AppSessionDep, current_user: CurrentUserDep):
+def list_analyses(resume_id: str, app_session: AppSessionDep, user_id: CurrentUserIdDep):
     service = ResumeService(app_session)
-    resume = service.get_by_id(resume_id, current_user.id)
+    resume = service.get_by_id(resume_id, user_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
     return service.get_analyses(resume_id)

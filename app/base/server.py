@@ -4,15 +4,24 @@ import uuid
 from contextlib import asynccontextmanager
 from typing import Callable, List
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 
 from app.base.base import ApiResponse
+from app.base.constants import ACCESS_COOKIE
+from app.base.log_context import init_log_context, clear_log_context
+from app.services.token_service import TokenService
 
 logger = logging.getLogger(__name__)
 
 REQUEST_ID_HEADER = "X-Request-ID"
+
+PUBLIC_PATHS = frozenset({
+    "/health", "/",
+    "/docs", "/openapi.json", "/redoc",
+    "/auth/signup", "/auth/login", "/auth/refresh",
+})
 
 
 class AppServer(FastAPI):
@@ -21,11 +30,10 @@ class AppServer(FastAPI):
       - Request ID generation / propagation (X-Request-ID header)
       - Request duration tracking and logging
       - Consistent error responses
+      - JWT authentication for protected paths (sets request.state.user_id)
     """
 
     def __init__(self, lifespan_handlers: List[Callable] = None, **kwargs):
-        # kwargs.pop("lifespan",None)
-        # combined_lifespan = self._create_combined_lifespan(lifespan_handlers or [])
         user_lifespan = kwargs.pop("lifespan", None)
         handlers = (lifespan_handlers or []) + ([user_lifespan] if user_lifespan else [])
         combined_lifespan = self._create_combined_lifespan(handlers)
@@ -53,11 +61,15 @@ class AppServer(FastAPI):
         status_code = 500
 
         request_id = request.headers.get(REQUEST_ID_HEADER, f"API-{uuid.uuid4()}")
+        init_log_context(request_id)
 
-        logger.info(
-            f"{request.method} {request.url.path} - Request started",
-            extra={"request_id": request_id, "http_method": request.method, "http_path": request.url.path},
-        )
+        logger.info(f"{request.method} {request.url.path} - Request started")
+
+        # ── Authentication (before routing) ─────────────────────────────
+        if not self._is_public_path(request.url.path):
+            auth_response = await self._authenticate(request, request_id)
+            if auth_response:
+                return auth_response
 
         try:
             response = await call_next(request)
@@ -65,26 +77,41 @@ class AppServer(FastAPI):
             status_code = response.status_code
             return response
         except Exception as e:
-            logger.error(
-                f"{request.method} {request.url.path} - Handler error: {e}",
-                exc_info=True,
-                extra={"request_id": request_id},
-            )
+            logger.error(f"{request.method} {request.url.path} - Handler error: {e}", exc_info=True)
             return self._error_response(500, "Internal Server Error", request_id)
         finally:
             duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
-            logger.info(
-                f"{request.method} {request.url.path} - {status_code} in {duration_ms}ms",
-                extra={
-                    "request_id": request_id,
-                    "httpRequest": {
-                        "requestMethod": request.method,
-                        "requestUrl": str(request.url),
-                        "status": status_code,
-                        "latency": f"{duration_ms}ms",
-                    },
-                },
-            )
+            logger.info(f"{request.method} {request.url.path} - {status_code} in {duration_ms}ms")
+            clear_log_context()
+
+    def _is_public_path(self, path: str) -> bool:
+        if path in PUBLIC_PATHS:
+            return True
+        if path.startswith(("/auth/", "/docs", "/openapi.json", "/redoc")):
+            return True
+        return False
+
+    async def _authenticate(self, request: Request, request_id: str) -> JSONResponse | None:
+        token = None
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        else:
+            token = request.cookies.get(ACCESS_COOKIE)
+
+        if not token:
+            return self._error_response(401, "Not authenticated", request_id)
+
+        try:
+            payload = TokenService.verify_token(token)
+        except HTTPException:
+            return self._error_response(401, "Invalid or expired token", request_id)
+
+        if payload.get("token_type") != "access":
+            return self._error_response(401, "Invalid token type", request_id)
+
+        request.state.user_id = payload.get("user_id")
+        return None
 
     def _error_response(self, status_code: int, message: str, request_id: str) -> JSONResponse:
         response = JSONResponse(

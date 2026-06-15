@@ -9,10 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class ResumeRepository(BaseRepository):
-    """
-    Handles all DB operations for Resume, ResumeAnalysis and ChatMessage.
-    Receives an AppSession through BaseRepository.__init__.
-    """
 
     def __init__(self, db: AppSession) -> None:
         super().__init__(db)
@@ -39,7 +35,6 @@ class ResumeRepository(BaseRepository):
         )
 
     def delete_resume(self, resume: Resume) -> None:
-        # Remove related chat messages first to avoid FK constraint errors
         self.db.query(ChatMessage).filter(ChatMessage.resume_id == resume.id).delete()
         self.delete(resume)
 

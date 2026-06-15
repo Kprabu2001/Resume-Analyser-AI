@@ -69,18 +69,11 @@ def _parse_resume_text(raw_text: str) -> dict:
 
 
 class ResumeService(BaseService):
-    """
-    Handles resume upload, parsing and analysis.
-
-    self.session     → AppSession
-    self.repository  → ResumeRepository
-    """
 
     def _get_repository(self) -> BaseRepository:
         return ResumeRepository(self.session)
 
     def create_and_parse(self, user_id: str, filename: str, raw_text: str):
-        # Step 1 — persist the raw resume
         with self.get_db_session():
             resume = self.repository.create_resume(
                 user_id=user_id,
@@ -88,10 +81,8 @@ class ResumeService(BaseService):
                 raw_text=raw_text,
             )
 
-        # Step 2 — call AI (outside transaction — no DB lock held during network I/O)
         parsed = _parse_resume_text(raw_text)
 
-        # Step 3 — write parsed fields back
         if parsed:
             with self.get_db_session():
                 resume = self.repository.update_resume_fields(resume, parsed)
@@ -155,7 +146,6 @@ Languages: {', '.join(resume.languages or [])}
                 "summary": "Analysis could not be completed.",
             }
 
-        # AI call done — now write to DB in its own transaction
         with self.get_db_session():
             analysis = self.repository.create_analysis(
                 resume_id=resume.id,
