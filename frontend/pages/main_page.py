@@ -2,6 +2,7 @@ import streamlit as st
 from utils.api_client import (
     upload_resume, run_analysis, list_analyses, get_resume,
     send_chat_message, clear_chat_session,
+    generate_cover_letter, export_analysis_pdf,
 )
 from utils.session import do_logout, reset_chat
 from components.score_card import render_score_dashboard, render_feedback_sections
@@ -37,8 +38,8 @@ def _render_upload_page():
 
     uploaded_file = st.file_uploader(
         "Choose a resume file",
-        type=["pdf", "txt"],
-        help=f"Supported: PDF, TXT — Max file size: {MAX_UPLOAD_MB}MB",
+        type=["pdf", "docx", "txt"],
+        help=f"Supported: PDF, DOCX, TXT — Max file size: {MAX_UPLOAD_MB}MB",
     )
 
     if uploaded_file and uploaded_file.size > MAX_UPLOAD_MB * 1024 * 1024:
@@ -256,15 +257,88 @@ def _render_analyse_page():
     else:
         st.caption("No analyses yet. Run your first analysis above.")
 
+    # Cover letter generator
+    _render_cover_letter_section()
+
 
 def _show_analysis(analysis: dict):
     render_score_dashboard(analysis)
     render_feedback_sections(analysis)
 
+    resume_id = st.session_state.get("active_resume_id")
+    analysis_id = analysis.get("id")
+    if resume_id and analysis_id:
+        pdf_bytes = export_analysis_pdf(resume_id, analysis_id, st.session_state.access_token)
+        if pdf_bytes:
+            st.download_button(
+                "Download PDF Report",
+                data=pdf_bytes,
+                file_name=f"analysis_{analysis_id[:8]}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+            )
 
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+# Cover Letter Section
+
+def _render_cover_letter_section():
+    st.markdown("---")
+    st.markdown("### Cover Letter Generator")
+
+    resume_id = st.session_state.get("active_resume_id")
+    if not resume_id:
+        st.info("Select a resume from the sidebar to generate a cover letter.")
+        return
+
+    with st.expander("Generate a tailored cover letter", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            tone = st.selectbox(
+                "Tone",
+                options=["professional", "enthusiastic", "concise", "formal", "conversational"],
+                index=0,
+            )
+            company_name = st.text_input("Company Name (optional)", placeholder="e.g. Acme Corp")
+        with col2:
+            hiring_manager = st.text_input("Hiring Manager (optional)", placeholder="e.g. Jane Smith")
+            job_description = st.text_area(
+                "Job Description (optional)",
+                placeholder="Paste job description to tailor the letter...",
+                height=100,
+            )
+
+        if st.button("Generate Cover Letter", use_container_width=True, type="primary"):
+            with st.spinner("Writing your cover letter..."):
+                result = generate_cover_letter(
+                    resume_id=resume_id,
+                    access_token=st.session_state.access_token,
+                    job_description=job_description or None,
+                    tone=tone,
+                    company_name=company_name or None,
+                    hiring_manager=hiring_manager or None,
+                )
+            if result["success"]:
+                data = result["data"]
+                st.success("Cover letter generated!")
+                subject = data.get("subject")
+                letter = data.get("cover_letter", "")
+                if subject:
+                    st.markdown(f"**Subject:** {subject}")
+                st.text_area("Cover Letter", letter, height=400)
+                st.download_button(
+                    "Download as Text",
+                    data=f"Subject: {subject or 'Cover Letter'}\n\n{letter}",
+                    file_name="cover_letter.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                )
+            else:
+                st.error(f"Generation failed: {result['error']}")
+
+
 # Chat Page
-# ──────────────────────────────────────────────────────────────────────────────
+
 
 def _render_chat_page():
     st.markdown('<p class="app-title">AI Career Coach</p>', unsafe_allow_html=True)

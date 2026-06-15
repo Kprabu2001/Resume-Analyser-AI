@@ -224,6 +224,38 @@ def send_chat_message(
         return {"reply": f"\u274c Error: {str(exc)}", "intent": "error"}
 
 
+def export_analysis_pdf(resume_id: str, analysis_id: str, access_token: str) -> Optional[bytes]:
+    try:
+        r = _make_request(
+            "GET", f"{BACKEND_URL}/resumes/{resume_id}/analyses/{analysis_id}/export",
+            access_token, timeout=30,
+        )
+        return r.content if r.status_code == 200 else None
+    except Exception:
+        return None
+
+
+def generate_cover_letter(
+    resume_id: str, access_token: str, job_description: Optional[str] = None,
+    tone: str = "professional", company_name: Optional[str] = None,
+    hiring_manager: Optional[str] = None,
+) -> dict:
+    try:
+        payload = {"resume_id": resume_id, "tone": tone}
+        if job_description:
+            payload["job_description"] = job_description
+        if company_name:
+            payload["company_name"] = company_name
+        if hiring_manager:
+            payload["hiring_manager"] = hiring_manager
+        r = _make_request("POST", f"{BACKEND_URL}/resumes/cover-letter", access_token, json=payload, timeout=30)
+        if r.status_code == 200:
+            return {"success": True, "data": r.json()}
+        return {"success": False, "error": r.json().get("detail", "Generation failed")}
+    except Exception as exc:
+        return {"success": False, "error": str(exc)}
+
+
 def clear_chat_session(session_id: str, access_token: str) -> bool:
     try:
         r = _make_request(

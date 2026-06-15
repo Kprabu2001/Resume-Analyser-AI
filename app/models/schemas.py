@@ -98,6 +98,21 @@ class AnalysisOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ─── Cover Letter ────────────────────────────────────────────────────────────
+
+class CoverLetterRequest(BaseModel):
+    resume_id: str
+    job_description: Optional[str] = None
+    tone: str = "professional"
+    company_name: Optional[str] = None
+    hiring_manager: Optional[str] = None
+
+
+class CoverLetterResponse(BaseModel):
+    cover_letter: str
+    subject: Optional[str] = None
+
+
 # ─── Chat ────────────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):

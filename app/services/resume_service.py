@@ -158,3 +158,61 @@ Languages: {', '.join(resume.languages or [])}
 
     def get_analyses(self, resume_id: str):
         return self.repository.get_analyses_for_resume(resume_id)
+
+    def generate_cover_letter(
+        self,
+        resume,
+        job_description: Optional[str] = None,
+        tone: str = "professional",
+        company_name: Optional[str] = None,
+        hiring_manager: Optional[str] = None,
+    ) -> dict:
+        resume_context = f"""
+Candidate: {resume.candidate_name or 'Unknown'}
+Current Role: {resume.current_role or 'N/A'}
+Years of Experience: {resume.years_of_experience or 'N/A'}
+Skills: {', '.join(resume.skills or [])}
+Work Experience: {json.dumps(resume.work_experience or [], indent=2)}
+Education: {json.dumps(resume.education or [], indent=2)}
+Raw Text: {resume.raw_text[:2000]}
+        """
+
+        system = f"""You are an expert cover letter writer. Write a {tone} cover letter for the candidate based on their resume.
+The letter should be well-structured, compelling, and tailored to the role and company.
+Use the candidate's actual experience, skills, and achievements from the resume.
+
+Return ONLY a valid JSON object:
+{{
+  "subject": "A compelling email subject line",
+  "cover_letter": "The full cover letter with proper salutation, body paragraphs, and closing"
+}}
+
+The cover_letter should be 3-4 paragraphs, written in a {tone} tone, ready to copy-paste.
+No markdown, no explanations — only the JSON object."""
+
+        user_msg = f"Write a cover letter for this candidate:\n{resume_context}"
+        if job_description:
+            user_msg += f"\n\n--- JOB DESCRIPTION ---\n{job_description[:3000]}"
+        if company_name:
+            user_msg += f"\nCompany: {company_name}"
+        if hiring_manager:
+            user_msg += f"\nHiring Manager: {hiring_manager}"
+
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                max_tokens=2000,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+            text = response.choices[0].message.content.strip()
+            text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
+            return json.loads(text)
+        except Exception as e:
+            logger.error(f"Cover letter generation error: {e}")
+            return {
+                "subject": "Cover Letter",
+                "cover_letter": "Could not generate cover letter. Please try again.",
+            }
