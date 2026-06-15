@@ -166,7 +166,7 @@ def export_analysis_pdf(
         },
     )
     return Response(
-        content=pdf_bytes,
+        content=bytes(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename=analysis_{analysis_id}.pdf"},
     )

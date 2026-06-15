@@ -325,7 +325,10 @@ def _render_cover_letter_section():
                 letter = data.get("cover_letter", "")
                 if subject:
                     st.markdown(f"**Subject:** {subject}")
-                st.text_area("Cover Letter", letter, height=400)
+                st.markdown("**Preview:**")
+                st.markdown(letter.replace("\n", "  \n"))
+                st.markdown("**Copy-paste version:**")
+                st.text_area("Cover Letter", letter, height=400, label_visibility="collapsed")
                 st.download_button(
                     "Download as Text",
                     data=f"Subject: {subject or 'Cover Letter'}\n\n{letter}",

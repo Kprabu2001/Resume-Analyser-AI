@@ -2,19 +2,21 @@
 
 An AI-powered tool that reads your resume, scores it, and tells you what to fix. Also comes with an AI career coach chatbot for more interactive advice.
 
-I built this to learn FastAPI + SQLAlchemy properly, and it turned into a full-ish app. Uses LLaMA 3.3 70B via the Groq API (which is free and fast, honestly impressive).
+Built with FastAPI + SQLAlchemy on the backend, Streamlit on the frontend, and LLaMA 3.3 70B via the Groq API.
 
 ---
 
 ## What it does
 
-- **Upload a resume** (PDF or .txt) and it auto-extracts everything — name, skills, experience, education, certs, languages
-- **AI analysis** with scores out of 100: overall, ATS, skills, experience, education, formatting
-- **Job description matching** — paste a JD and it tells you which keywords you hit and what you're missing
-- **Actionable suggestions** specific to your resume, not generic advice
-- **AI career coach** — a chatbot that knows your resume and answers questions about it
-- **User accounts** with JWT auth so your resumes and chat history persist between visits
-- **Chat sessions** stored server-side, organised per conversation
+| Feature | Description |
+|---------|-------------|
+| **Upload & Parse** | Upload PDF, DOCX, or TXT — AI extracts name, skills, experience, education, certs, languages. Magic byte validation detects file type by content, not extension. |
+| **AI Analysis** | Scores out of 100: overall, ATS, skills, experience, education, formatting — with actionable suggestions |
+| **Job Description Matching** | Paste a JD and it tells you which keywords you hit and what you're missing |
+| **Cover Letter Generator** | Generate a tailored cover letter from your resume + JD, with configurable tone |
+| **PDF Report Export** | Download any analysis as a PDF report |
+| **AI Career Coach** | Chatbot that knows your resume and answers career questions |
+| **User Accounts** | JWT auth with access/refresh token rotation — resumes and chat history persist |
 
 ## Tech stack
 
@@ -25,8 +27,9 @@ I built this to learn FastAPI + SQLAlchemy properly, and it turned into a full-i
 | Database | PostgreSQL 15 |
 | Frontend | Streamlit |
 | Auth | JWT (PyJWT) + bcrypt (passlib) |
-| PDF parsing | pdfplumber (falls back to pypdf) |
-| Containers | Docker, docker-compose |
+| File parsing | pdfplumber, pypdf, python-docx |
+| PDF export | fpdf2 |
+| Container | Docker, docker-compose |
 
 ## Project structure
 
@@ -34,37 +37,46 @@ I built this to learn FastAPI + SQLAlchemy properly, and it turned into a full-i
 resume_analyzer/
 ├── .env
 ├── .gitignore
-├── requirements.txt
+├── pyproject.toml
 ├── docker-compose.yml
 ├── Dockerfile
 ├── Dockerfile.frontend
 │
 ├── app/
-│   ├── main.py
+│   ├── main.py                         # app entry, logging setup, lifespan
 │   ├── core/
-│   │   └── config.py                  # loads env vars via Pydantic Settings
+│   │   └── config.py                   # Pydantic Settings (env vars)
 │   ├── database/
-│   │   ├── session.py                 # SQLAlchemy engine + session
-│   │   └── models.py                  # all ORM models
+│   │   ├── session.py                  # sync SQLAlchemy engine + session
+│   │   └── models.py                   # ORM models (string PKs)
 │   ├── models/
-│   │   └── schemas.py                 # Pydantic request/response models
+│   │   └── schemas.py                  # Pydantic request/response models
 │   ├── base/
-│   │   ├── base.py                    # declarative base
-│   │   ├── base_repository.py         # generic CRUD
-│   │   ├── base_service.py            # abstract service
-│   │   └── database_session.py        # commit/rollback context manager
+│   │   ├── base.py                     # declarative base + AppBase mixin
+│   │   ├── server.py                   # AppServer (FastAPI subclass) with auth middleware, request ID logging
+│   │   ├── id_gen.py                   # generate_id(prefix) utility
+│   │   ├── log_context.py              # thread-local request_id context
+│   │   ├── log_formatter.py            # RequestIdFormatter for log messages
+│   │   ├── base_repository.py          # generic CRUD with FilterNode system
+│   │   ├── base_service.py             # abstract service base
+│   │   ├── app_session.py              # sync wrapper around sqlalchemy.orm.Session
+│   │   └── database_session.py         # context manager with savepoint support
+│   ├── utils/
+│   │   ├── file_validator.py           # magic byte detection + DOCX extraction
+│   │   └── pdf_export.py               # fpdf2 analysis report generator
 │   ├── repositories/
-│   │   ├── user_repository.py         # user CRUD only
-│   │   ├── user_session.py            # session CRUD (revoke, mark_expired)
-│   │   └── resume_repository.py       # resumes, analyses, chat messages
+│   │   ├── user_repository.py
+│   │   ├── user_session.py
+│   │   └── resume_repository.py
 │   ├── services/
-│   │   ├── auth_service.py            # signup, login, logout, refresh
-│   │   ├── token_service.py           # JWT create + verify
-│   │   ├── user_session.py            # session logic (token hashing)
-│   │   ├── resume_service.py          # AI parsing + scoring
-│   │   └── chat_service.py            # AI career coach
+│   │   ├── auth_service.py
+│   │   ├── token_service.py
+│   │   ├── user_session.py
+│   │   ├── resume_service.py           # AI parsing, analysis, cover letter generation
+│   │   └── chat_service.py
 │   ├── dependencies/
-│   │   └── auth_dependency.py         # get_current_user
+│   │   ├── auth_dependency.py          # CurrentUserIdDep — reads request.state.user_id
+│   │   └── db_dependency.py            # AppSessionDep
 │   └── routes/
 │       ├── auth.py
 │       ├── resume.py
@@ -72,9 +84,10 @@ resume_analyzer/
 │
 ├── frontend/
 │   ├── main.py
+│   ├── .streamlit/config.toml          # maxUploadSize = 5
 │   ├── config/
 │   │   ├── settings.py
-│   │   └── styles.py                  # custom CSS (way too much of it)
+│   │   └── styles.py                   # custom CSS
 │   ├── pages/
 │   │   ├── auth_page.py
 │   │   └── main_page.py
@@ -82,8 +95,8 @@ resume_analyzer/
 │   │   ├── score_card.py
 │   │   └── sidebar.py
 │   └── utils/
-│       ├── api_client.py              # http client with auto token refresh
-│       └── session.py                 # streamlit session state management
+│       ├── api_client.py               # HTTP client with auto token refresh
+│       └── session.py                  # Streamlit session state management
 │
 └── tests/
     └── test_auth.py
@@ -107,7 +120,7 @@ python -m venv venv
 # source venv/bin/activate    (mac/linux)
 # venv\Scripts\activate       (windows)
 
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 2. Set up .env
@@ -172,12 +185,14 @@ App runs at http://localhost:8501.
 
 | Method | Path | What |
 |--------|------|------|
-| POST | `/resumes/upload` | Upload PDF/TXT, auto-parse with AI |
+| POST | `/resumes/upload` | Upload PDF/DOCX/TXT, auto-parse with AI |
 | GET | `/resumes/` | List all your resumes |
 | GET | `/resumes/{id}` | Get resume details |
 | DELETE | `/resumes/{id}` | Delete a resume |
 | POST | `/resumes/analyse` | Run AI analysis (optional job description) |
 | GET | `/resumes/{id}/analyses` | List analyses for a resume |
+| POST | `/resumes/cover-letter` | Generate tailored cover letter (tone, company, JD) |
+| GET | `/resumes/{id}/analyses/{aid}/export` | Download analysis as PDF |
 
 ### Chat — `/chat` (auth required)
 
@@ -196,14 +211,25 @@ App runs at http://localhost:8501.
 
 ## How auth works
 
-1. Signup — password gets bcrypt hashed, stored in the users table.
-2. Login — verify password, generate access token (24h) + refresh token (7d). Refresh token gets SHA-256 hashed and saved in user_sessions. Both tokens go into HTTP cookies.
-3. Every API call — `get_current_user()` reads the Bearer token, verifies the JWT, checks the user exists and is active.
-4. On 401 — frontend auto-calls `/auth/refresh` using the refresh cookie, gets a new access token, retries the original request.
-5. Logout — session is revoked in the DB (status = "revoked"), cookies are cleared.
-6. Natural expiry — when a refresh token's JWT expires, the session is marked "expired" (not revoked). This is a different status so you can tell the difference between "user logged out" and "token ran out".
+1. **Signup** — password gets bcrypt hashed, stored in the users table.
+2. **Login** — verify password, generate access token (24h) + refresh token (7d). Refresh token gets SHA-256 hashed and saved in `user_sessions`.
+3. **Middleware-based auth** — `AppServer._request_middleware` intercepts every request. For non-public paths, it extracts the JWT from `Authorization: Bearer` header (or `ACCESS_COOKIE` fallback), verifies it via `TokenService`, and sets `request.state.user_id`. Returns 401 immediately if invalid.
+4. **Route-level dependency** — `CurrentUserIdDep` reads `request.state.user_id` and returns it as a `str`. No extra DB query per request.
+5. **On 401** — frontend auto-calls `/auth/refresh` using the refresh cookie, gets a new access token, retries the original request.
+6. **Logout** — session is revoked in the DB (status = "revoked"), cookies are cleared.
 
 Access token lives in Streamlit session state (in-memory). Refresh token gets stored as a browser cookie via JavaScript.
+
+## Request logging
+
+Every request gets a unique `X-Request-ID` (generated or propagated from client). All log messages during a request are automatically tagged with a short request ID in brackets:
+
+```
+INFO app.base.server - [af493fc54eb7] GET /resumes/ - Request started
+INFO app.base.server - [af493fc54eb7] GET /resumes/ - 200 in 7.13ms
+```
+
+This follows a thread-local context pattern (inspired by voiez-backend) — no need to pass `request_id` around manually.
 
 ## What I learned building this
 
@@ -213,8 +239,9 @@ Access token lives in Streamlit session state (in-memory). Refresh token gets st
 - Groq's API is genuinely fast for an LLM, and free tier is generous
 - Streamlit is quick to build with but custom CSS is painful at scale
 - SQLAlchemy 2.0 style (`select()` instead of `Query`) feels cleaner once you get used to it
-- Putting curl in a Docker image just for a healthcheck feels wrong but it works
-- I should have written more tests from the start
+- Magic byte file validation is trivial to implement and catches real mislabeled uploads
+- fpdf2 is surprisingly capable for pure-Python PDF generation
+- Moving auth to middleware avoids repeating the same logic in every route
 
 ## Things I'd add if I kept going
 
@@ -222,7 +249,6 @@ Access token lives in Streamlit session state (in-memory). Refresh token gets st
 - WebSocket streaming for the chatbot so it doesn't feel as slow
 - More tests (auth is covered, basically nothing else is)
 - CI pipeline with GitHub Actions
-- .docx support
 - Email verification
 - Rate limiting on auth endpoints
 - An admin panel would be nice but that's a whole other project

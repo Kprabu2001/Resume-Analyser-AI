@@ -56,11 +56,15 @@ def analysis_to_pdf(analysis: dict, resume: dict) -> bytes:
         pdf.set_font("Helvetica", "B", 13)
         pdf.cell(0, 8, label, new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("Helvetica", "", 11)
+        pdf.x = pdf.l_margin
+        full_w = pdf.w - pdf.l_margin - pdf.r_margin
         if isinstance(value, list):
             for item in value:
-                pdf.multi_cell(0, 5, f"  - {item}")
+                pdf.multi_cell(w=full_w, h=5, text=f"  - {item}")
+                pdf.x = pdf.l_margin
         else:
-            pdf.multi_cell(0, 5, str(value))
+            pdf.multi_cell(w=full_w, h=5, text=str(value))
+            pdf.x = pdf.l_margin
         pdf.ln(3)
 
     return pdf.output()

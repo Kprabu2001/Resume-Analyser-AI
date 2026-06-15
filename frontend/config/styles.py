@@ -10,6 +10,7 @@ def load_css():
         background: #f9fafb !important;
         border-right: 1px solid #e5e7eb;
     }
+    [data-testid="stSidebarNav"] { display: none !important; }
     .stChatMessage { background: transparent !important; }
 
     /* ── Typography ── */

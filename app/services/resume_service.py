@@ -178,16 +178,23 @@ Raw Text: {resume.raw_text[:2000]}
         """
 
         system = f"""You are an expert cover letter writer. Write a {tone} cover letter for the candidate based on their resume.
-The letter should be well-structured, compelling, and tailored to the role and company.
-Use the candidate's actual experience, skills, and achievements from the resume.
+The letter must have clear paragraph breaks using \n\n between each section.
+
+STRUCTURE (use \n\n between every section):
+1. Salutation line (e.g. "Dear Hiring Manager,")
+2. Opening paragraph — introduce self, role, company, enthusiasm
+3. Body paragraph 1 — key experience and achievements from resume
+4. Body paragraph 2 — technical skills and fit for the role
+5. Closing paragraph — restate interest, call to action, thanks
+6. Closing line ("Sincerely,") then new line with candidate name
 
 Return ONLY a valid JSON object:
 {{
   "subject": "A compelling email subject line",
-  "cover_letter": "The full cover letter with proper salutation, body paragraphs, and closing"
+  "cover_letter": "Dear ...\n\nPara 1...\n\nPara 2...\n\n...\n\nSincerely,\nCandidate Name"
 }}
 
-The cover_letter should be 3-4 paragraphs, written in a {tone} tone, ready to copy-paste.
+The cover_letter must use \n\n for paragraph breaks, written in a {tone} tone.
 No markdown, no explanations — only the JSON object."""
 
         user_msg = f"Write a cover letter for this candidate:\n{resume_context}"
@@ -209,6 +216,7 @@ No markdown, no explanations — only the JSON object."""
             )
             text = response.choices[0].message.content.strip()
             text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
+            text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
             return json.loads(text)
         except Exception as e:
             logger.error(f"Cover letter generation error: {e}")
