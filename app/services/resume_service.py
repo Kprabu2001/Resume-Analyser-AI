@@ -84,6 +84,8 @@ class ResumeService(BaseService):
         parsed = _parse_resume_text(raw_text)
 
         if parsed:
+            if not parsed.get("current_role") and parsed.get("work_experience"):
+                parsed["current_role"] = parsed["work_experience"][0].get("role")
             with self.get_db_session():
                 resume = self.repository.update_resume_fields(resume, parsed)
 

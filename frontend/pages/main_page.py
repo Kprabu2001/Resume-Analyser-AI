@@ -251,9 +251,9 @@ def _render_analyse_page():
     st.markdown("### Previous Analyses")
     analyses = list_analyses(resume_id, st.session_state.access_token)
     if analyses:
-        for a in analyses:
+        for i, a in enumerate(analyses):
             with st.expander(f"{a.get('analysis_type', '').replace('_', ' ').title()} — Score: {a.get('overall_score') or 0:.0f}/100 | {a.get('created_at', '')[:16]}"):
-                _show_analysis(a)
+                _show_analysis(a, key_prefix=f"prev_{i}")
     else:
         st.caption("No analyses yet. Run your first analysis above.")
 
@@ -261,7 +261,7 @@ def _render_analyse_page():
     _render_cover_letter_section()
 
 
-def _show_analysis(analysis: dict):
+def _show_analysis(analysis: dict, key_prefix: str = ""):
     render_score_dashboard(analysis)
     render_feedback_sections(analysis)
 
@@ -270,12 +270,14 @@ def _show_analysis(analysis: dict):
     if resume_id and analysis_id:
         pdf_bytes = export_analysis_pdf(resume_id, analysis_id, st.session_state.access_token)
         if pdf_bytes:
+            unique_key = f"{key_prefix}_pdf_{analysis_id}" if key_prefix else f"pdf_{analysis_id}"
             st.download_button(
                 "Download PDF Report",
                 data=pdf_bytes,
                 file_name=f"analysis_{analysis_id[:8]}.pdf",
                 mime="application/pdf",
                 use_container_width=True,
+                key=unique_key,
             )
 
 
