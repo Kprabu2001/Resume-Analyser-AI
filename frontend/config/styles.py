@@ -270,62 +270,44 @@ def load_css():
     }
 
     /* ── Recently Uploaded List ── */
-    .sb-recent-list {
-        margin-top: 4px;
-    }
-    [data-testid="stSidebar"] .sb-recent-name {
-        padding: 0 !important;
+    [data-testid="stSidebar"] .row-widget.stHorizontal .stButton {
         margin: 0 !important;
+        padding: 0 !important;
     }
-    [data-testid="stSidebar"] .sb-recent-name button {
-        background: transparent !important;
-        border: none !important;
-        color: #6b7280 !important;
-        font-size: 0.68rem !important;
+    [data-testid="stSidebar"] .row-widget.stHorizontal .stButton > button {
         padding: 2px 4px !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        border-radius: 0 !important;
+        border: none !important;
+        font-size: 0.68rem !important;
+    }
+    /* name buttons */
+    [data-testid="stSidebar"] .row-widget.stHorizontal > div:first-child .stButton > button {
+        background: transparent !important;
+        color: #6b7280 !important;
         justify-content: flex-start !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
         white-space: nowrap !important;
-        width: 100% !important;
-        min-height: 0 !important;
-        height: auto !important;
     }
-    [data-testid="stSidebar"] .sb-recent-name button:hover {
+    [data-testid="stSidebar"] .row-widget.stHorizontal > div:first-child .stButton > button:hover {
         background: #f3f4f6 !important;
     }
-    [data-testid="stSidebar"] .sb-recent-name.active button {
+    [data-testid="stSidebar"] .row-widget.stHorizontal > div:first-child .stButton > button[kind="primary"] {
         background: #e5e7eb !important;
         color: #111827 !important;
         font-weight: 500 !important;
     }
-    [data-testid="stSidebar"] .sb-recent-del {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    [data-testid="stSidebar"] .sb-recent-del button {
+    /* delete buttons */
+    [data-testid="stSidebar"] .row-widget.stHorizontal > div:last-child .stButton > button {
+        background: transparent !important;
         color: #d1d5db !important;
-        font-size: 0.6rem !important;
-        padding: 2px 4px !important;
-        margin: 0 !important;
         justify-content: center !important;
-        min-height: 0 !important;
-        height: auto !important;
-        width: 100% !important;
     }
-    [data-testid="stSidebar"] .sb-recent-del button:hover {
+    [data-testid="stSidebar"] .row-widget.stHorizontal > div:last-child .stButton > button:hover {
         color: #ef4444 !important;
-    }
-
-    /* ── Delete ── */
-    [data-testid="stSidebar"] button[kind="secondary"][data-testid*="del_"] {
-        color: #9ca3af;
-        font-size: 0.65rem;
-        padding: 2px 4px !important;
-        justify-content: center;
-    }
-    [data-testid="stSidebar"] button[kind="secondary"][data-testid*="del_"]:hover {
-        color: #ef4444;
     }
 
     /* ── Logout ── */

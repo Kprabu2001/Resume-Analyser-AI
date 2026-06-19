@@ -31,58 +31,57 @@ def render_sidebar():
         resumes = list_resumes(st.session_state.access_token)
 
         if resumes:
-            options = {r["filename"]: r["id"] for r in resumes}
+            name_to_id = {resume["filename"]: resume["id"] for resume in resumes}
+            filenames = list(name_to_id.keys())
 
-            idx = 0
+            selected_index = 0
             active_id = st.session_state.get("active_resume_id")
             if active_id:
-                for i, rid in enumerate(options.values()):
-                    if rid == active_id:
-                        idx = i
+                for index, file_id in enumerate(name_to_id.values()):
+                    if file_id == active_id:
+                        selected_index = index
                         break
 
-            selected = st.selectbox(
+            selected_filename = st.selectbox(
                 "Choose",
-                options=list(options.keys()),
-                index=idx,
+                options=filenames,
+                index=selected_index,
                 label_visibility="collapsed",
                 key="resume_selector",
             )
 
-            if selected:
-                st.session_state.active_resume_id = options[selected]
-                st.session_state.active_resume_name = selected
+            if selected_filename:
+                st.session_state.active_resume_id = name_to_id[selected_filename]
+                st.session_state.active_resume_name = selected_filename
 
             st.markdown('<p class="sb-label" style="margin-top:8px">Recently Uploaded</p>', unsafe_allow_html=True)
-            st.markdown('<div class="sb-recent-list">', unsafe_allow_html=True)
 
-            for r in reversed(resumes[:5]):
-                name = r["filename"]
-                rid = r["id"]
-                is_sel = st.session_state.get("active_resume_id") == rid
-                del_btn_key = f"del_recent_{rid}"
-                sel_btn_key = f"sel_recent_{rid}"
+            name_col, delete_col = st.columns([5, 1])
 
-                col_a, col_b = st.columns([5, 1])
-                with col_a:
-                    name_cls = "sb-recent-name active" if is_sel else "sb-recent-name"
-                    st.markdown(f'<div class="{name_cls}">', unsafe_allow_html=True)
-                    if st.button(name, key=sel_btn_key, use_container_width=True):
-                        st.session_state.active_resume_id = rid
-                        st.session_state.active_resume_name = name
+            with name_col:
+                for resume in reversed(resumes[:5]):
+                    resume_id = resume["id"]
+                    is_selected = st.session_state.get("active_resume_id") == resume_id
+                    button_type = "primary" if is_selected else "secondary"
+                    if st.button(
+                        resume["filename"],
+                        key=f"sel_{resume_id}",
+                        use_container_width=True,
+                        type=button_type,
+                    ):
+                        st.session_state.active_resume_id = resume_id
+                        st.session_state.active_resume_name = resume["filename"]
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-                with col_b:
-                    st.markdown('<div class="sb-recent-del">', unsafe_allow_html=True)
-                    if st.button("x", key=del_btn_key):
-                        delete_resume(rid, st.session_state.access_token)
-                        if st.session_state.get("active_resume_id") == rid:
+
+            with delete_col:
+                for resume in reversed(resumes[:5]):
+                    resume_id = resume["id"]
+                    if st.button("✕", key=f"del_{resume_id}"):
+                        delete_resume(resume_id, st.session_state.access_token)
+                        if st.session_state.get("active_resume_id") == resume_id:
                             st.session_state.active_resume_id = None
                             st.session_state.active_resume_name = None
                         st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
 
         else:
             st.caption("No resumes uploaded yet.")

@@ -5,6 +5,12 @@ from utils.session import do_login
 
 
 def show_auth_page() -> None:
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] { display: none !important; }
+    [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+    </style>
+    """, unsafe_allow_html=True)
     st.markdown('<div style="text-align: center; padding: 1rem 0;">', unsafe_allow_html=True)
     st.markdown('<p class="auth-title">Resume Analyser AI</p>', unsafe_allow_html=True)
     st.markdown('<p class="auth-sub">AI-powered resume analysis & career coaching</p>', unsafe_allow_html=True)
