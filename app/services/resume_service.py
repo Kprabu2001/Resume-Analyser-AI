@@ -3,16 +3,12 @@ import logging
 import re
 from typing import Optional
 
-from groq import Groq
-
 from app.base.base_repository import BaseRepository
 from app.base.base_service import BaseService
-from app.core.config import settings
 from app.repositories.resume_repository import ResumeRepository
+from app.utils.groq_client import chat_completion
 
 logger = logging.getLogger(__name__)
-
-client = Groq(api_key=settings.groq_api_key)
 
 PARSE_SYSTEM = """You are an expert resume parser. Extract structured information from the resume text provided.
 Return ONLY a valid JSON object with these exact keys (use null for missing fields):
@@ -52,7 +48,7 @@ No markdown, no extra text — only the JSON object."""
 
 def _parse_resume_text(raw_text: str) -> dict:
     try:
-        response = client.chat.completions.create(
+        response = chat_completion(
             model="llama-3.3-70b-versatile",
             max_tokens=2000,
             messages=[
@@ -127,7 +123,7 @@ Languages: {', '.join(resume.languages or [])}
             user_msg += "\n\nFocus on how well this resume matches the job description."
 
         try:
-            response = client.chat.completions.create(
+            response = chat_completion(
                 model="llama-3.3-70b-versatile",
                 max_tokens=2000,
                 messages=[
@@ -208,7 +204,7 @@ No markdown, no explanations — only the JSON object."""
             user_msg += f"\nHiring Manager: {hiring_manager}"
 
         try:
-            response = client.chat.completions.create(
+            response = chat_completion(
                 model="llama-3.3-70b-versatile",
                 max_tokens=2000,
                 messages=[

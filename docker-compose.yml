@@ -10,7 +10,7 @@ services:
     container_name: resume-analyser-postgres
     environment:
       POSTGRES_USER:     postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
       POSTGRES_DB:       resume_analyser
     ports:
       - "5432:5432"
@@ -36,7 +36,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/resume_analyser
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-change-me-in-production}@postgres:5432/resume_analyser
     depends_on:
       postgres:
         condition: service_healthy

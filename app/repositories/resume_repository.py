@@ -119,10 +119,12 @@ class ResumeRepository(BaseRepository):
         rows = (
             self.db.query(ChatMessage)
             .filter(ChatMessage.session_id == session_id)
-            .order_by(ChatMessage.id.asc())
+            .order_by(ChatMessage.id.desc())
+            .limit(20)
             .all()
         )
-        return [{"role": row.role, "content": row.content} for row in rows[-20:]]
+        rows.reverse()
+        return [{"role": row.role, "content": row.content} for row in rows]
 
     def clear_chat_session(self, session_id: str) -> None:
         self.delete_by_query(ChatMessage, session_id=session_id)

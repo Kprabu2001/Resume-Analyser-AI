@@ -183,8 +183,9 @@ class AuthService(BaseService):
         response.set_cookie(
             key=ACCESS_COOKIE,
             value=access_token,
-            httponly=False,
+            httponly=True,
             samesite="lax",
+            secure=False,
             path="/",
             expires=expiration,
         )
@@ -198,8 +199,9 @@ class AuthService(BaseService):
         response.set_cookie(
             key=REFRESH_COOKIE,
             value=refresh_token,
-            httponly=False,
+            httponly=True,
             samesite="lax",
+            secure=False,
             path="/",
             expires=expiration,
         )

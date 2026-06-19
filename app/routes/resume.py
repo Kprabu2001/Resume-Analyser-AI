@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
@@ -101,7 +102,6 @@ def delete_resume(resume_id: str, app_session: AppSessionDep, user_id: CurrentUs
     resume = ResumeService(app_session).delete(resume_id, user_id)
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found.")
-    return ApiResponse(message="Resume deleted successfully.")
 
 
 @router.post("/analyse", response_model=AnalysisOut, status_code=status.HTTP_201_CREATED)
@@ -143,7 +143,6 @@ def export_analysis_pdf(
     analysis = next((a for a in analyses if a.id == analysis_id), None)
     if not analysis:
         raise HTTPException(status_code=404, detail="Analysis not found.")
-    import json
     pdf_bytes = analysis_to_pdf(
         {
             "overall_score": analysis.overall_score,
