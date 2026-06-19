@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: resume-analyzer-backend
+    runtime: docker
+    repo: https://github.com/your-username/your-repo
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "5"
