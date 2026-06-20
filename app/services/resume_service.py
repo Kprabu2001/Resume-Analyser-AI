@@ -214,7 +214,8 @@ No markdown, no explanations — only the JSON object."""
             )
             text = response.choices[0].message.content.strip()
             text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
-            text = re.sub(r"[\x00-\x1f]", "", text)
+            text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+            text = text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
             return json.loads(text)
         except Exception as e:
             logger.error(f"Cover letter generation error: {e}")
