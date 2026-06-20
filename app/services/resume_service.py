@@ -46,6 +46,19 @@ ANALYSIS_SYSTEM = """You are an expert resume analyst and career coach. Analyse 
 No markdown, no extra text — only the JSON object."""
 
 
+def _clean_json_response(text: str) -> str:
+    text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
+    start = text.find('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        text = text[start:end+1]
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+    def _escape_in_strings(m):
+        return m.group(0).replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+    text = re.sub(r'"(?:[^"\\]|\\.)*"', _escape_in_strings, text)
+    return text
+
+
 def _parse_resume_text(raw_text: str) -> dict:
     try:
         response = chat_completion(
@@ -57,8 +70,7 @@ def _parse_resume_text(raw_text: str) -> dict:
             ],
         )
         text = response.choices[0].message.content.strip()
-        text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
-        return json.loads(text)
+        return json.loads(_clean_json_response(text))
     except Exception as e:
         logger.error(f"Resume parse error: {e}")
         return {}
@@ -132,8 +144,7 @@ Languages: {', '.join(resume.languages or [])}
                 ],
             )
             text = response.choices[0].message.content.strip()
-            text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
-            data = json.loads(text)
+            data = json.loads(_clean_json_response(text))
         except Exception as e:
             logger.error(f"Analysis error: {e}")
             data = {
@@ -213,10 +224,7 @@ No markdown, no explanations — only the JSON object."""
                 ],
             )
             text = response.choices[0].message.content.strip()
-            text = re.sub(r"^```json\s*|^```\s*|```$", "", text, flags=re.MULTILINE).strip()
-            text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
-            text = text.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
-            return json.loads(text)
+            return json.loads(_clean_json_response(text))
         except Exception as e:
             logger.error(f"Cover letter generation error: {e}")
             return {
