@@ -246,19 +246,6 @@ INFO app.base.server - [af493fc54eb7] GET /resumes/ - 200 in 7.13ms
 
 Uses Python's `threading.local()` so concurrent requests don't mix up IDs. Pattern taken from voiez-backend.
 
-## Notable quirks and fixes
-
-- **String IDs** — everything uses prefixed random IDs (`USR_`, `RES_`, etc.) instead of auto-increment integers. You can tell what a record is just by looking at its ID. Also more secure — no sequential guessing.
-- **No LangChain** — direct Groq SDK calls are simpler and faster for a single-resume-per-request pattern. LangChain would add complexity without benefit at this scale.
-- **No RAG** — one resume at a time fits in the prompt context. No need for vector search.
-- **fpdf2 for PDFs** — pure Python, zero system dependencies. Keeps the Docker image small.
-- **Thread-local logging** — async projects use `contextvars`, but this is a sync app so `threading.local()` works fine.
-- **JSON columns** — skills, experience, education are stored as PostgreSQL JSON columns instead of separate join tables. Simpler code, fewer joins.
-- **Supabase connection uses the transaction pooler** (port 6543) — the direct connection (port 5432) doesn't work from Render because it's IPv6 only.
-- **The refresh cookie is scoped to `/auth/refresh`** — it's only sent when needed, reducing exposure.
-- **Access token expiry is 30 minutes** — not 24 hours. Short enough that stolen tokens are limited damage, long enough to not be annoying.
-- **The Groq client has retry with exponential backoff** — 3 attempts with 2s → 4s → 8s waits. Only retries on network errors and rate limits.
-- **The JSON cleaner (`_clean_json_response()`) strips markdown fences, extracts `{...}` content, and escapes literal newlines inside JSON strings** — LLMs love to add extra text and put real newlines inside string values.
 
 ## Things I'd add if I kept going
 
