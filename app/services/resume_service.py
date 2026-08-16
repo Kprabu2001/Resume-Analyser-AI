@@ -62,7 +62,7 @@ def _clean_json_response(text: str) -> str:
 def _parse_resume_text(raw_text: str) -> dict:
     try:
         response = chat_completion(
-            model="Qwen3.6 27B",
+            model="openai/gpt-oss-120b",
             max_tokens=2000,
             messages=[
                 {"role": "system", "content": PARSE_SYSTEM},
@@ -136,7 +136,7 @@ Languages: {', '.join(resume.languages or [])}
 
         try:
             response = chat_completion(
-                model="Qwen3.6 27B",
+                model="openai/gpt-oss-120b",
                 max_tokens=2000,
                 messages=[
                     {"role": "system", "content": ANALYSIS_SYSTEM},
@@ -216,7 +216,7 @@ No markdown, no explanations — only the JSON object."""
 
         try:
             response = chat_completion(
-                model="Qwen3.6 27B",
+                model="openai/gpt-oss-120b",
                 max_tokens=2000,
                 messages=[
                     {"role": "system", "content": system},
