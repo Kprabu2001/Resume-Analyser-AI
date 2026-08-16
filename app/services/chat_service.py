@@ -127,7 +127,7 @@ class ChatService(BaseService):
         messages.append({"role": "user", "content": final_message})
 
         response = chat_completion(
-            model="Qwen3.6 27B",
+            model="openai/gpt-oss-120b",
             max_tokens=800,
             messages=messages,
         )
