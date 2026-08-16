@@ -127,7 +127,7 @@ class ChatService(BaseService):
         messages.append({"role": "user", "content": final_message})
 
         response = chat_completion(
-            model="llama-3.3-70b-versatile",
+            model="Qwen3.6 27B",
             max_tokens=800,
             messages=messages,
         )
